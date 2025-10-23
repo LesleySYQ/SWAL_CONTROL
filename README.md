@@ -1,42 +1,20 @@
 # Academic Project Page Template
 
-> **Update (September 2025)**: This template has been modernized with better design, SEO, and mobile support. For the original version, see the [original-version branch](https://github.com/eliahuhorwitz/Academic-project-page-template/tree/original-version).
+> **Update (October 2025)**: For the original version, see the [original-version branch](https://github.com/eliahuhorwitz/Academic-project-page-template/tree/original-version).
 
-A clean, responsive template for academic project pages.
+Abstract:
+The growing conflict between rising vehicle volumes on roads and limited road capacity has drawn significant attention to optimizing space allocation for individual vehicles. The lane-free approach, which allows vehicles to move without the constraints of lane boundaries, shows the potential to accommodate higher traffic densities. However, its reliance on a high penetration rate of autonomous vehicles (AVs) poses safety challenges during the early stages of AV deployment. To address this limitation, we propose a novel multi-Special Width Approach Lane (multi-SWAL) management method, which uses SWALs to reduce lane widths while maintaining a structured, lane-based framework. This approach is adaptable to various scenarios, ranging from limited AV penetration during initial deployments to full AV adoption in mature systems. The proposed method integrates lane change guidance with adaptive signal control to enhance both spatial and temporal utilization of intersection resources. By dynamically optimizing vehicle positioning across multiple lanes and coordinating discharge timing, the method minimizes average delays and improves intersection efficiency. Simulation results indicate that the multi-SWAL approach significantly outperforms conventional lane designs and other existing methods across
+various traffic demand levels. Sensitivity analyses further demonstrate its robustness in effectively managing intersections under diverse traffic conditions.
 
 
-Example project pages built using this template are:
+Video:
 - https://horwitz.ai/probex
-- https://vision.huji.ac.il/probegen
-- https://horwitz.ai/mother
-- https://horwitz.ai/spectral_detuning
-- https://vision.huji.ac.il/ladeda
-- https://vision.huji.ac.il/dsire
-- https://horwitz.ai/podd
-- https://dreamix-video-editing.github.io
-- https://horwitz.ai/conffusion
-- https://horwitz.ai/3d_ads/
-- https://vision.huji.ac.il/ssrl_ad
-- https://vision.huji.ac.il/deepsim
 
 
 
 ## Start using the template
-To start using the template click on `Use this Template`.
-
-The template uses html for controlling the content and css for controlling the style. 
-To edit the websites contents edit the `index.html` file. It contains different HTML "building blocks", use whichever ones you need and comment out the rest.  
 
 **IMPORTANT!** Make sure to replace the `favicon.ico` under `static/images/` with one of your own, otherwise your favicon is going to be a dreambooth image of me.
-
-## What's New
-
-- Modern, clean design with better mobile support
-- Improved SEO with proper meta tags and structured data
-- Performance improvements (lazy loading, optimized assets)
-- More Works dropdown
-- Copy button for BibTeX citations
-- Better accessibility
 
 ## Components
 
@@ -72,9 +50,6 @@ Create a 1200x630px social preview image at `static/images/social_preview.png`.
 - Use YouTube for large videos (>10MB)  
 - Replace the favicon in `static/images/`
 - Works with GitHub Pages
-
-## Acknowledgments
-Parts of this project page were adopted from the [Nerfies](https://nerfies.github.io/) page.
 
 ## Website License
 <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.
