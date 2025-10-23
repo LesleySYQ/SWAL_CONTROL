@@ -8,7 +8,7 @@ various traffic demand levels. Sensitivity analyses further demonstrate its robu
 
 
 Video:
-- https://horwitz.ai/probex
+- https://github.com/LesleySYQ/SWAL_CONTROL/blob/master/static/videos/SWAL_control.mp4
 
 
 
