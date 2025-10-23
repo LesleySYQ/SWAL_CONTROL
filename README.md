@@ -1,4 +1,4 @@
-# Academic Project Page Template
+# Paper
 
 > **Update (October 2025)**: For the original version, see the [original-version branch](https://github.com/eliahuhorwitz/Academic-project-page-template/tree/original-version).
 
