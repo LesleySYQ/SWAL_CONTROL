@@ -1,0 +1,191 @@
+# -*- coding: utf-8 -*-
+"""
+@author: SHI
+"""
+
+
+import gurobipy as gp
+from gurobipy import GRB
+import pandas as pd
+def Optimize_Lane_Change(L1,V_change,Target_lane, Forward_v, Back_v, x_0, k_0, i_0, V_h_total):
+    I = [1,2,3,4]
+    L = 200
+    # parameter
+    ## ====   all related vehicles
+    I_v = {}
+    for i in I:
+        tmp = []
+        for v in V_change:
+            if i_0[v] == i:
+                tmp.append(v)
+        I_v[i] = tmp
+    x0 = x_0
+    x0[0]=L1; x0[1001]=L; x0[1002]=L; x0[1003]=L; x0[1004]=L
+      
+    all_v_i = {}
+    for i in I:
+        affected = []
+        if len(I_v[i]) == 1:  # only one bus needs to change lane
+            v = I_v[i][0]
+            affected = [item for item in [v, Forward_v[v], Back_v[v]] if item is not None]
+
+        elif len(I_v[i]) == 2 and Target_lane[I_v[i][0]] != Target_lane[I_v[i][-1]]:
+            for v in I_v[i]:
+                affected += [item for item in [v, Forward_v[v], Back_v[v]] if item is not None]
+        elif len(I_v[i]) == 0:
+            affected = []
+        else:
+            affected = I_v[i][:]  # Copy original list
+            lane_target = Target_lane[I_v[i][0]]
+            # Adding vehicles based on conditions
+            for v_ in list(i_0.keys()):
+                if ((x0[v_] >= x0[Forward_v[I_v[i][0]]] if Forward_v[I_v[i][0]] is not None else x0[0]) 
+                    and (k_0[v_] == lane_target) 
+                    and (i_0[v_] == i_0[I_v[i][0]])):
+                    affected.append(v_)
+            # Sorting and adding additional vehicles
+            all_change_v = sorted(I_v[i], key=lambda item: x0[item])
+            for v_ in list(i_0.keys()):
+                if x0[all_change_v[0]] <= x0[v_] <= x0[all_change_v[-1]] and k_0[v_] == k_0[all_change_v[0]] and i_0[v_] == i_0[all_change_v[0]]:
+                    affected.append(v_)
+            affected = list(set(affected))  # Remove duplicates
+
+        affected = [a for a in affected if a is not None]
+        all_v_i[i] = affected
+
+       
+    V_total = [v for i in I for v in all_v_i[i]] 
+    #i0 = {v:i_0[v] for v in V_total }
+    #k0 = {v:k_0[v] for v in V_total }
+
+    x0 = {v:x_0[v] for v in V_total }
+    x0[0]=L1; x0[1001]=L; x0[1002]=L; x0[1003]=L; x0[1004]=L
+    
+    lv = {v:12 if v in V_h_total else 5 for v in V_total}
+    V_h_total = [v for v in V_h_total if v in V_total]   
+    T_max = 5
+    T = list(range(0,T_max))
+    
+    l_max = 11.11
+    d = 2
+
+    # model 2
+    #  1. create model
+    model = gp.Model('lane_change')
+
+    #  2. create variables
+    miu = model.addVars(V_change,T,vtype=GRB.BINARY, name="miu_{w,t}")   # t时刻是否换道
+    x = model.addVars(V_total,T,vtype=GRB.CONTINUOUS, name="x_{w,t}")  # 位置
+
+
+    #  3. create constraints
+    ## 3.1 initial postion
+    model.addConstrs( x[w,0] == x0[w] for w in V_total)
+
+    ## 3.2 Lane change
+        # can only change lane one time
+    model.addConstrs( sum(miu[w,t] for t in T) ==1 for w in V_change)
+
+        # Lane change postion is within the cwl area
+    model.addConstrs( x[w,t] >= L1 - 80*(1-miu[w,t]) for w in V_change for t in T)
+
+    ## 3.3 Gap acceptance
+        # following vehicle
+    model.addConstrs( x[w,t] - x[Forward_v[w],t] >= lv[Forward_v[w]] + d  - 200 * (1-miu[w,t]) 
+                     for w in V_change if Forward_v[w] is not None for t in T)
+    model.addConstrs( x[w,t+1] - x[Forward_v[w],t+1] >= lv[Forward_v[w]] + d  - 200 * (1-miu[w,t]) 
+                     for w in V_change if Forward_v[w] is not None for t in T[0:-1])
+
+        # followed vehicle
+    model.addConstrs( x[Back_v[w],t] - x[w,t] >= lv[w] + d - 200 * (1-miu[w,t]) 
+                     for w in V_change if Back_v[w] is not None for t in T)    
+    model.addConstrs( x[Back_v[w],t+1] - x[w,t+1] >= lv[w] + d - 200 * (1-miu[w,t]) 
+                     for w in V_change if Back_v[w] is not None for t in T[0:-1])
+
+    ## 3.4 forward
+    model.addConstrs( x[Back_v[w],t] - x[Forward_v[w],t] >= lv[Forward_v[w]] + d 
+                     for w in V_change if Forward_v[w] is not None and Back_v[w] is not None
+                     for t in T)
+    model.addConstrs( x[w,t] - x[w,t+1] <= l_max for w in V_h_total for t in T[0:-1])
+    
+
+    # when lane change, the postion stay still
+    model.addConstrs( x[w,t] - x[w,t+1] <= l_max*(1-miu[w,t]) for w in V_change for t in T[0:-1])
+
+    ## 3.5 passenger car do not delebrately slow down
+    model.addConstrs( x[w,t] - x[w,t+1] == l_max for w in V_total if w not in V_h_total for t in T[0:-1])
+    model.addConstrs( x[w,t] - x[w,t+1] >= 0 for w in V_total for t in T[0:-1])
+    
+    # 4.objectives
+    obj = sum(x[w,T[-1]] for w in V_total)
+    model.setObjective(obj,GRB.MINIMIZE)
+  
+    # time limit
+    model.Params.TimeLimit = 1.5
+    model.setParam('Presolve', 2)      # 开启高级预处理
+    model.setParam('Heuristics', 0.5)  # 增加启发式求解的权重
+    model.setParam('MIPFocus', 1)      # 优先寻找可行解
+    model.optimize()
+    
+    #print('status',GRB.Status.OPTIMAL)
+    #model.printQuality()
+    
+    if model.status == gp.GRB.OPTIMAL:
+        print("find optimal result！")
+        print("optimal result:" ,model.objVal)
+        #
+        result = pd.DataFrame()
+        var_name = []
+        var_value = []
+        for v in model.getVars():
+            #print('%s %g' % (v.varName, v.x))
+            var_name.append(v.varName)
+            var_value.append(v.x)
+        result['var'] = var_name
+        result['value'] = var_value
+        
+        if len(result) > 0:
+            miu = result[result["var"].str.contains("miu_")]
+            miu = miu[miu['value']==1]
+            miu.loc[:, 'w'] = miu["var"].apply(lambda r:int(r.split("[")[-1].split(",")[0]))
+            miu.loc[:, 't'] = miu["var"].apply(lambda r:int(r.split(",")[-1].split("]")[0]))
+            
+            Lane_Change_Time = {v:miu[miu["w"]==v]["t"].iloc[0] for v in V_change}
+            
+            x = result[result["var"].str.contains("x_")]
+            x.loc[:,'w'] = x["var"].apply(lambda r:int(r.split("[")[-1].split(",")[0]))
+            x.loc[:,'t'] = x["var"].apply(lambda r:int(r.split(",")[-1].split("]")[0]))
+            
+            Speed = {v: ((x[(x["w"]==v) & (x["t"]==0)]["value"].iloc[0]) 
+                         - (x[(x["w"]==v) & (x["t"]==Lane_Change_Time[v])]["value"].iloc[0])) /Lane_Change_Time[v] 
+                     for v in V_change}
+            for v in V_h_total:
+                if v not in V_change:
+                    Speed[v] = ((x[(x["w"]==v) & (x["t"]==0)]["value"].iloc[0]) 
+                                 - (x[(x["w"]==v) & (x["t"]==T_max-1)]["value"].iloc[0])) /T_max-1
+        else:
+            Lane_Change_Time = {}
+            Speed = {} 
+        print("speed",Speed)
+        for v in list(Speed.keys()):
+            if v not in list(Lane_Change_Time.keys()):
+                corresponding_key = []
+                # Find the key corresponding to the v in Forward_v
+                for key, value in Forward_v.items():
+                    if value == v:
+                        corresponding_key.append(key)
+                        break           
+                # Find the key corresponding to the v in Back_v
+                for key, value in Back_v.items():
+                    if value == v:
+                        corresponding_key.append(key)
+                        break
+
+                Lane_Change_Time[v] = max([Lane_Change_Time[ key] for key in corresponding_key])
+        #Lane_Change_Time,Speed = data_process(result,T_max,V_change,V_h_total)
+        return Lane_Change_Time,Speed
+    else:
+        print("can not find optimal result within limited time")
+        return {},{}
+
+
